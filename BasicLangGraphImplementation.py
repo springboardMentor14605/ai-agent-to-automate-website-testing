@@ -5,7 +5,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 
 
-os.environ["GOOGLE_API_KEY"] = "AIzaSyD1oOBhg3WUvjTzFN99L3GeaAxi_iWRfEQ"
+os.environ["GOOGLE_API_KEY"] = "xxx"
 
 class AgentState(TypedDict):
     user_input: str
