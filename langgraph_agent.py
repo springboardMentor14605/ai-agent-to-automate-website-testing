@@ -13,7 +13,7 @@ class AgentState(TypedDict):
 
 
 llm = ChatGoogleGenerativeAI(
-    api_key = "AIzaSyA0g2HBer93pKsnpzRQp7pzubU__Zjoiz8",
+    api_key = "your-key",
     model="gemini-3-flash-review",
     temperature=0.3
 )
@@ -65,3 +65,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
