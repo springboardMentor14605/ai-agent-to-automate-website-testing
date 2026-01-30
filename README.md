@@ -15,16 +15,20 @@ This project provides an intelligent automated testing solution that combines:
 
 ## Project Components
 
-### 1. `playwright_agent.py` (AI Agent)
-The main agent script. It takes a natural language string (e.g., "Open login page, enter username..."), parses it into structured commands using an LLM, and generates ready-to-run Playwright code.
+### Core Agents & Parsers
+*   **`playwright_agent.py`**: The main AI agent script. It orchestrates the flow from natural language -> LLM parsing -> Code Generation -> Execution.
+*   **`llm_parser.py`**: A specialized module that interacts with Google's Gemini API. It takes raw text instructions and returns structured JSON commands (open, click, fill, assert).
+*   **`rule_based_parser.py`**: A deterministic fallback parser that uses keyword matching (e.g., "click", "fill") to parse simple instructions without using an LLM.
 
-### 2. `test_playwright.py` (Sandbox)
-A comprehensive test suite that benchmarks testing against a local `login.html` page. It includes:
-*   Positive and Negative test scenarios.
-*   **Auto-Screenshot**: Automatically saves screenshots to `screenshots/` if a test fails.
+### Testing Sandbox (Manual & Automated)
+*   **`test_playwright.py`**: The primary Pytest suite. It benchmarks testing against `login.html` and includes robust failure handling (screenshots).
+*   **`conftest.py`**: Pytest configuration file that defines fixtures and hooks (like the screenshot-on-failure hook).
+*   **`login.html`**: A responsive, local HTML login page used as the target for the sandbox tests.
 
-### 3. `login.html`
-A responsive, local HTML login page used as the target for the sandbox tests.
+### Demos & Utilities
+*   **`demo1.py`**: A simple, standalone Playwright script (no Pytest) to demonstrate the basics of browser automation.
+*   **`demo2.py`**: An advanced demo showing how to integrate Playwright with Pytest fixtures.
+*   **`check_models.py`**: A utility script to verify your Google Gemini API key and list available models.
 
 ## Setup & Installation
 
@@ -51,19 +55,25 @@ A responsive, local HTML login page used as the target for the sandbox tests.
 
 ## Usage
 
-### Running the AI Agent
+### 1. Running the AI Agent
+To generate tests from natural language:
 1.  Open `playwright_agent.py`.
-2.  Modify the `test_case` string in the `if __name__ == "__main__":` block with your desired instructions.
+2.  Modify the `test_case` string in the `if __name__ == "__main__":` block.
 3.  Run the agent:
     ```bash
     python playwright_agent.py
     ```
-4.  The generated code will be printed to the console and saved to `generated_test_script.py`.
+4.  The generated code will be saved to `generated_test_script.py`.
 
-### Running Sandbox Tests
-Run the Pytest suite:
+### 2. Standard Testing (Sandbox)
+Run the comprehensive Pytest suite:
 ```bash
 pytest test_playwright.py
 ```
 *   **View Results**: Check console output for pass/fail status.
 *   **Screenshots**: Check `screenshots/` folder for failure captures.
+
+### 3. Utilities
+*   **Check API Key**: `python check_models.py`
+*   **Test Rule Parser**: `python rule_based_parser.py`
+*   **Run Basic Demo**: `python demo1.py`

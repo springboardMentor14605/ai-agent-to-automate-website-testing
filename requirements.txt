@@ -4,3 +4,4 @@ langchain-core
 langgraph
 playwright
 pytest
+google-generativeai
