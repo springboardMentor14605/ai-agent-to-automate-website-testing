@@ -1,0 +1,26 @@
+# Environment Variables
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+
+# Playwright
+test-results/
+screenshots/
+playwright-report/
+
+# Pytest
+.pytest_cache/
+
+# Node (if applicable)
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# Generated Files (optional, usually you don't commit these)
+generated_test_script.py

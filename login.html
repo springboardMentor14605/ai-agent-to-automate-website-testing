@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Responsive Login</title>
+
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f4f6f8;
+            font-family: Arial, sans-serif;
+        }
+
+        .login-box {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .login-box input,
+        .login-box button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .login-box input {
+            border: 1px solid #ccc;
+        }
+
+        .login-box button {
+            border: none;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        .login-box button:hover {
+            background: #0056b3;
+        }
+
+        .success-message {
+            margin-top: 15px;
+            color: green;
+            text-align: center;
+            display: none;
+            font-weight: bold;
+        }
+
+        .error-message {
+            margin-top: 15px;
+            color: red;
+            text-align: center;
+            display: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="login-box" id="loginBox">
+    <h2>Login</h2>
+
+    <!-- IDs added for Playwright -->
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+
+    <button id="loginBtn">Login</button>
+
+    <!-- Messages for validation -->
+    <p id="successMessage" class="success-message">Login Successful!</p>
+    <p id="errorMessage" class="error-message">Invalid credentials</p>
+</div>
+
+<script>
+    function adjustLayout() {
+        const box = document.getElementById("loginBox");
+        const width = window.innerWidth;
+
+        if (width <= 480) {
+            box.style.width = "90%";
+            box.style.padding = "20px";
+        } else if (width <= 768) {
+            box.style.width = "60%";
+            box.style.padding = "25px";
+        } else {
+            box.style.width = "320px";
+            box.style.padding = "30px";
+        }
+    }
+
+    adjustLayout();
+    window.addEventListener("resize", adjustLayout);
+
+    // Login simulation logic
+    document.getElementById("loginBtn").addEventListener("click", function () {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        const successMsg = document.getElementById("successMessage");
+        const errorMsg = document.getElementById("errorMessage");
+
+        successMsg.style.display = "none";
+        errorMsg.style.display = "none";
+
+        // Simple validation logic
+        if (username && password) {
+            successMsg.style.display = "block";
+        } else {
+            errorMsg.style.display = "block";
+        }
+    });
+</script>
+
+</body>
+</html>
