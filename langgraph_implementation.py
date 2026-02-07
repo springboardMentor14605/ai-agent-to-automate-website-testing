@@ -4,8 +4,9 @@ from langgraph.graph import StateGraph, END
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 
-
-os.environ["GOOGLE_API_KEY"] = "xxx"
+api_key = os.getenv("GOOGLE_API_KEY")
+if not api_key:
+    raise ValueError("GOOGLE_API_KEY is not set as an environment variable")
 
 class AgentState(TypedDict):
     user_input: str
