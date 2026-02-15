@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 from datetime import datetime
 
-os.environ["GOOGLE_API_KEY"] = "AIzaSyAdmH_HN-QOidTAAazubSxIn6hiclzebWE"
+os.environ["GOOGLE_API_KEY"] = ""
 
 class PlaywrightExecutor:
     """Executes generated Playwright actions and assertions in a headless browser environment."""
