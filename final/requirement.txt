@@ -1,1 +1,8 @@
+flask
+playwright
+langchain
+langchain-google-genai
+python-dotenv
+pytest-playwright
+flask-cors
 
