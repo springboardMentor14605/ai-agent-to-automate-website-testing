@@ -7,17 +7,16 @@ from dotenv import load_dotenv
 import os
 from datetime import datetime
 
-os.environ["GOOGLE_API_KEY"] = ""
+load_dotenv()
+os.environ["GOOGLE_API_KEY"] = ""  # Add your key here
 
 class PlaywrightExecutor:
     """Executes generated Playwright actions and assertions in a headless browser environment."""
 
     def __init__(self, headless: bool = True, use_llm_debugging: bool = False):
-        # Sets whether the browser will run with a visible UI or in the background
         self.headless = headless
         self.use_llm_debugging = use_llm_debugging
         
-        # Initialize Gemini for debugging assistance if enabled
         if self.use_llm_debugging:
             google_api_key = os.getenv("GOOGLE_API_KEY")
             if google_api_key:
@@ -31,20 +30,8 @@ class PlaywrightExecutor:
                 self.use_llm_debugging = False
 
     def execute_test(self, test_steps: List[Dict[str, Any]], test_name: str = "Test Suite") -> Dict[str, Any]:
-        """
-        Execute a list of test steps and return detailed results.
-        
-        Args:
-            test_steps: List of test step dictionaries
-            test_name: Name of the test suite for reporting
-            
-        Returns:
-            Dictionary containing test execution results
-        """
-        # Print header
         self._print_header(test_name, len(test_steps))
         
-        # Dictionary to track the outcome of the test run
         results = {
             "test_name": test_name,
             "status": "PASS",
@@ -62,7 +49,6 @@ class PlaywrightExecutor:
         start_time = datetime.now()
 
         with sync_playwright() as p:
-            # Launching the Chromium browser
             print(f"🌐 Launching {'headless' if self.headless else 'headed'} Chromium browser...")
             browser = p.chromium.launch(headless=self.headless)
             context = browser.new_context()
@@ -71,9 +57,7 @@ class PlaywrightExecutor:
 
             try:
                 for idx, step in enumerate(test_steps, 1):
-                    # Run each individual action and its assertions
                     print(f"📍 Step {idx}/{len(test_steps)}: {self._format_step_description(step)}")
-                    
                     try:
                         self._execute_step(page, step)
                         results["steps_executed"] += 1
@@ -84,40 +68,30 @@ class PlaywrightExecutor:
                         results["failed_step"] = idx
                         results["failed_step_details"] = step
                         raise step_error
-                        
+
             except Exception as e:
-                # Capture errors if a step fails
                 print(f"\n❌ Error executing step {results.get('failed_step', '?')}: {e}\n")
                 results["status"] = "FAIL"
                 results["error"] = str(e)
-                
-                # Use LLM to suggest debugging steps if enabled
                 if self.use_llm_debugging and results["failed_step_details"]:
                     print("🤖 Analyzing failure with AI...\n")
                     suggestion = self._get_debug_suggestion(results["failed_step_details"], str(e))
                     results["debug_suggestion"] = suggestion
                     self._print_debug_suggestion(suggestion)
             finally:
-                # Ensure resources are cleaned up
                 print("🔒 Closing browser...")
                 browser.close()
-                
-        # Calculate execution time
+
         end_time = datetime.now()
         results["execution_time"] = str(end_time - start_time)
-        
-        # Print summary
         self._print_summary(results)
-
         return results
 
     def _execute_step(self, page, step: Dict[str, Any]):
-        """Execute a single test step with its actions and assertions."""
         action = step.get("action")
         target = step.get("target")
         value = step.get("value")
-        
-        # Some formats might put params in a 'params' dict
+
         if "params" in step:
             params = step["params"]
             target = params.get("target", target) or params.get("url", target) or params.get("selector", target)
@@ -125,79 +99,73 @@ class PlaywrightExecutor:
 
         assertions = step.get("assertions", [])
 
-        # Map abstract instructions to actual Playwright browser commands
         if action == "open":
             url = target if target.startswith("http") else f"https://{target}"
             print(f"   🔗 Opening: {url}")
             page.goto(url)
+            page.wait_for_load_state("networkidle")
+        elif action == "fill":
+            print(f"   ⌨️  Filling '{target}' with: '{value}'")
+            page.wait_for_selector(target, state="visible", timeout=10000)
+            page.fill(target, value)
         elif action == "click":
             print(f"   👆 Clicking: {target}")
-            # Wait for element to be actionable
-            page.wait_for_selector(target, state="visible", timeout=5000)
+            page.wait_for_selector(target, state="visible", timeout=10000)
+            page.wait_for_load_state("domcontentloaded")
             page.click(target)
-        elif action == "fill":
-            print(f"   ⌨️  Filling '{target}' with: {value}")
-            page.wait_for_selector(target, state="visible", timeout=5000)
-            page.fill(target, value)
+        elif action == "select":
+            print(f"   📋 Selecting '{value}' from: {target}")
+            page.wait_for_selector(target, state="visible", timeout=10000)
+            page.select_option(target, value)
+            page.wait_for_load_state("domcontentloaded")
         elif action == "wait":
             print(f"   ⏳ Waiting: {value}ms")
             page.wait_for_timeout(int(value))
-        elif action == "assert":
-            # Handled by assertions loop below
-            pass
-        else:
-            print(f"   ⚠️  Unknown action: {action}")
+        elif action == "scroll":
+            print(f"   📜 Scrolling to: {target}")
+            page.locator(target).scroll_into_view_if_needed()
+        elif action == "hover":
+            print(f"   🖱️  Hovering over: {target}")
+            page.wait_for_selector(target, state="visible", timeout=10000)
+            page.hover(target)
+        elif action == "clear":
+            print(f"   🧹 Clearing: {target}")
+            page.wait_for_selector(target, state="visible", timeout=10000)
+            page.fill(target, "")
 
-        # Dynamically run the assertion code generated by the LLM
         if assertions:
             print(f"   🔍 Running {len(assertions)} assertion(s)...")
-            
+
         for idx, assertion in enumerate(assertions, 1):
-            # Simple security check to prevent completely arbitrary code
             if assertion.strip().startswith("expect("):
                 try:
-                    # using eval for single expression assertions
                     eval(assertion, {"expect": expect, "page": page, "re": re})
-                    print(f"      ✓ Assertion {idx} passed: {self._truncate(assertion, 60)}")
+                    print(f"      ✓ Assertion {idx} passed: {self._truncate(assertion, 65)}")
                 except AssertionError as e:
-                    print(f"      ✗ Assertion {idx} failed: {self._truncate(assertion, 60)}")
+                    print(f"      ✗ Assertion {idx} FAILED: {self._truncate(assertion, 65)}")
                     raise AssertionError(f"Assertion failed: {assertion}") from e
                 except Exception as e:
-                    print(f"      ⚠️  Assertion {idx} error: {self._truncate(assertion, 60)}")
+                    print(f"      ⚠️  Assertion {idx} error: {self._truncate(assertion, 65)}")
                     raise RuntimeError(f"Failed to evaluate assertion '{assertion}': {e}") from e
 
     def _get_debug_suggestion(self, failed_step: Dict[str, Any], error_message: str) -> str:
-        """Use Gemini to provide debugging suggestions based on the failed step and error."""
         system_prompt = """You are an expert Playwright test automation debugger.
-Analyze the failed test step and error, then provide concise, actionable debugging suggestions.
-Focus on common issues like:
-- Incorrect selectors (CSS, XPath, text selectors)
-- Timing issues (elements not loaded, animations)
-- Element visibility and state
-- Incorrect assertions or expected values
-- Authentication or navigation issues
+Analyze the failed test step and error, provide concise actionable suggestions.
+Format as a numbered list of 2-4 specific suggestions."""
 
-Format your response as a numbered list of 2-4 specific, actionable suggestions.
-Keep it concise and practical."""
-
-        user_prompt = f"""Failed Test Step:
+        user_prompt = f"""Failed Step:
 Action: {failed_step.get('action')}
 Target: {failed_step.get('target')}
 Value: {failed_step.get('value')}
 Assertions: {failed_step.get('assertions', [])}
-
-Error Message:
-{error_message}
-
-Provide specific debugging suggestions:"""
+Error: {error_message}
+Provide debugging suggestions:"""
 
         try:
             response = self.llm.invoke([
                 SystemMessage(content=system_prompt),
                 HumanMessage(content=user_prompt)
             ])
-            
-            # Extract content from response
             content = response.content
             if isinstance(content, list):
                 if len(content) > 0 and isinstance(content[0], dict) and 'text' in content[0]:
@@ -207,47 +175,41 @@ Provide specific debugging suggestions:"""
             return f"Could not generate debug suggestion: {e}"
 
     def _format_step_description(self, step: Dict[str, Any]) -> str:
-        """Format a step into a readable description."""
         action = step.get("action", "unknown")
         target = step.get("target", "")
         value = step.get("value", "")
-        
         if "params" in step:
             params = step["params"]
             target = params.get("target", target) or params.get("url", target) or params.get("selector", target)
             value = params.get("value", value)
-        
-        if action == "open":
-            return f"Open '{target}'"
-        elif action == "click":
-            return f"Click '{target}'"
-        elif action == "fill":
-            return f"Fill '{target}' with '{value}'"
-        elif action == "wait":
-            return f"Wait {value}ms"
-        else:
-            return f"{action.capitalize()} on '{target}'"
+        descriptions = {
+            "open":   f"Open '{target}'",
+            "click":  f"Click '{target}'",
+            "fill":   f"Fill '{target}' with '{value}'",
+            "wait":   f"Wait {value}ms",
+            "select": f"Select '{value}' from '{target}'",
+            "hover":  f"Hover over '{target}'",
+            "scroll": f"Scroll to '{target}'",
+            "clear":  f"Clear field '{target}'",
+        }
+        return descriptions.get(action, f"{action.capitalize()} on '{target}'")
 
     def _truncate(self, text: str, max_length: int) -> str:
-        """Truncate text to max_length with ellipsis."""
-        return text if len(text) <= max_length else text[:max_length-3] + "..."
+        return text if len(text) <= max_length else text[:max_length - 3] + "..."
 
     def _print_header(self, test_name: str, total_steps: int):
-        """Print a formatted test header."""
         print("\n" + "="*70)
-        print(f"🧪 TEST EXECUTION: {test_name}")
-        print(f"📊 Total Steps: {total_steps}")
-        print(f"⏰ Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"🧪 TEST EXECUTION : {test_name}")
+        print(f"📊 Total Steps    : {total_steps}")
+        print(f"⏰ Started        : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("="*70 + "\n")
 
     def _print_debug_suggestion(self, suggestion: str):
-        """Print formatted debug suggestions."""
         print("┌" + "─"*68 + "┐")
         print("│ 🤖 AI DEBUG SUGGESTIONS" + " "*44 + "│")
         print("├" + "─"*68 + "┤")
         for line in suggestion.split('\n'):
             if line.strip():
-                # Wrap long lines
                 if len(line) > 66:
                     words = line.split()
                     current_line = "│ "
@@ -264,63 +226,133 @@ Provide specific debugging suggestions:"""
         print("└" + "─"*68 + "┘\n")
 
     def _print_summary(self, results: Dict[str, Any]):
-        """Print a formatted test summary."""
         print("\n" + "="*70)
         print("📋 TEST EXECUTION SUMMARY")
         print("="*70)
-        
         status_icon = "✅" if results["status"] == "PASS" else "❌"
-        print(f"{status_icon} Status: {results['status']}")
-        print(f"📊 Steps Executed: {results['steps_executed']}/{results['total_steps']}")
-        print(f"✅ Passed: {results['steps_passed']}")
-        print(f"❌ Failed: {results['steps_failed']}")
-        print(f"⏱️  Execution Time: {results['execution_time']}")
-        
+        print(f"{status_icon} Status          : {results['status']}")
+        print(f"📊 Steps Executed : {results['steps_executed']}/{results['total_steps']}")
+        print(f"✅ Passed         : {results['steps_passed']}")
+        print(f"❌ Failed         : {results['steps_failed']}")
+        print(f"📈 Pass Rate      : {(results['steps_passed'] / results['total_steps']) * 100:.1f}%")
+        print(f"⏱️  Execution Time : {results['execution_time']}")
         if results["error"]:
-            print(f"\n❌ Error Details:")
-            print(f"   Step {results['failed_step']}: {results['error']}")
-        
+            print(f"\n❌ Error at Step {results['failed_step']}:")
+            print(f"   {results['error']}")
         print("="*70 + "\n")
 
 
 if __name__ == "__main__":
-    # Example usage
+
+    test_steps = [
+
+        # 1. Open site
+        {"action": "open",   "target": "https://www.saucedemo.com/",
+         "assertions": ["expect(page).to_have_title(re.compile('Swag Labs'))"]},
+
+        # 2. Fill username
+        {"action": "fill",   "params": {"selector": "#user-name", "value": "standard_user"},
+         "assertions": []},
+
+        # 3. Fill password
+        {"action": "fill",   "params": {"selector": "#password", "value": "secret_sauce"},
+         "assertions": []},
+
+        # 4. Login
+        {"action": "click",  "target": "#login-button",
+         "assertions": [
+             "expect(page).to_have_url(re.compile('.*inventory.*'))",
+             "expect(page.locator('.inventory_item')).to_have_count(6)"
+         ]},
+
+        # 5. Sort low to high
+        {"action": "select", "params": {"selector": ".product_sort_container", "value": "lohi"},
+         "assertions": ["expect(page.locator('.product_sort_container')).to_have_value('lohi')"]},
+
+        # 6. Wait for sort to apply
+        {"action": "wait",   "value": "1000",
+         "assertions": []},
+
+        # 7. Hover over first product
+        {"action": "hover",  "target": ".inventory_item:first-child .inventory_item_img",
+         "assertions": []},
+
+        # 8. Click first product to view detail
+        {"action": "click",  "target": ".inventory_item:first-child .inventory_item_name",
+         "assertions": [
+             "expect(page).to_have_url(re.compile('.*inventory-item.*'))",
+             "expect(page.locator('.inventory_details_name')).to_be_visible()",
+             "expect(page.locator('.inventory_details_price')).to_be_visible()"
+         ]},
+
+        # 9. Add to cart from detail page
+        {"action": "click",  "target": "button[id='add-to-cart']",
+         "assertions": ["expect(page.locator('.shopping_cart_badge')).to_have_text('1')"]},
+
+        # 10. Go back to inventory
+        {"action": "click",  "target": "#back-to-products",
+         "assertions": ["expect(page).to_have_url(re.compile('.*inventory.*'))"]},
+
+        # 11. Wait for inventory to load
+        {"action": "wait",   "value": "1000",
+         "assertions": []},
+
+        # 12. Add backpack to cart
+        {"action": "click",  "target": "#add-to-cart-sauce-labs-backpack",
+         "assertions": ["expect(page.locator('.shopping_cart_badge')).to_have_text('2')"]},
+
+        # 13. Open cart
+        {"action": "click",  "target": ".shopping_cart_link",
+         "assertions": [
+             "expect(page).to_have_url(re.compile('.*cart.*'))",
+             "expect(page.locator('.cart_item')).to_have_count(2)"
+         ]},
+
+        # 14. Remove first item from cart
+        {"action": "click",  "target": ".cart_item:first-child button",
+         "assertions": ["expect(page.locator('.cart_item')).to_have_count(1)"]},
+
+        # 15. Proceed to checkout
+        {"action": "click",  "target": "#checkout",
+         "assertions": ["expect(page).to_have_url(re.compile('.*checkout-step-one.*'))"]},
+
+        # 16. Fill checkout info
+        {"action": "fill",   "params": {"selector": "#first-name", "value": "John"},  "assertions": []},
+        {"action": "fill",   "params": {"selector": "#last-name",  "value": "Doe"},   "assertions": []},
+        {"action": "fill",   "params": {"selector": "#postal-code","value": "10001"}, "assertions": []},
+
+        # 17. Continue to order overview
+        {"action": "click",  "target": "#continue",
+         "assertions": [
+             "expect(page).to_have_url(re.compile('.*checkout-step-two.*'))",
+             "expect(page.locator('.summary_info')).to_be_visible()"
+         ]},
+
+        # 18. Scroll to see total price
+        {"action": "scroll", "target": ".summary_total_label",
+         "assertions": []},
+
+        # 19. Finish order
+        {"action": "click",  "target": "#finish",
+         "assertions": [
+             "expect(page).to_have_url(re.compile('.*checkout-complete.*'))",
+             "expect(page.locator('.complete-header')).to_contain_text('Thank you')"
+         ]},
+
+        # 20. Logout
+        {"action": "click",  "target": "#react-burger-menu-btn",
+         "assertions": ["expect(page.locator('#logout_sidebar_link')).to_be_visible()"]},
+        {"action": "click",  "target": "#logout_sidebar_link",
+         "assertions": [
+             "expect(page.locator('#login-button')).to_be_visible()"
+         ]},
+    ]
+
     try:
-        # Enable LLM debugging for intelligent error suggestions
         executor = PlaywrightExecutor(headless=False, use_llm_debugging=True)
-        
-        # Sample steps similar to what test_case_parser.py + assertion_generator.py would produce
-        sample_steps = [
-            {
-                "action": "open",
-                "target": "https://practice.automationtesting.in/",
-                "assertions": [
-                    "expect(page).to_have_title(re.compile('Automation Practice Site'))"
-                ]
-            },
-            {
-                "action": "click",
-                "target": "#menu-item-40",  # Shop link
-                "assertions": [
-                    "expect(page).to_have_url(re.compile('.*shop.*'))"
-                ]
-            },
-            {
-                "action": "fill",
-                "params": {
-                    "selector": "input[name='s']",
-                    "value": "selenium"
-                },
-                "assertions": []
-            }
-        ]
-        
-        # Execute the test
-        result = executor.execute_test(sample_steps, test_name="Sample E-Commerce Test")
-        
-        # You can also access results programmatically
-        if result["status"] == "FAIL":
-            print(f"⚠️  Test failed at step {result['failed_step']}")
-            
+        result = executor.execute_test(
+            test_steps,
+            test_name="Sauce Demo — Full E-Commerce Journey"
+        )
     except Exception as e:
         print(f"💥 Critical error: {e}")
