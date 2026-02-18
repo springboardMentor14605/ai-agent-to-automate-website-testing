@@ -1,0 +1,425 @@
+/* Testing Panel Component Styles */
+
+.testing-panel {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.panel-header {
+    margin-bottom: 2.5rem;
+}
+
+.panel-header h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem;
+}
+
+.panel-header p {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Filter Section */
+.filter-section {
+    margin-bottom: 2rem;
+}
+
+.filter-section label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.8rem;
+    font-size: 0.95rem;
+}
+
+.filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+}
+
+.filter-btn {
+    padding: 0.5rem 1.2rem;
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-pill);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+    border-color: var(--accent-green);
+    background: var(--accent-green-bg, #ecfdf5);
+}
+
+.filter-btn.active {
+    background: var(--accent-green);
+    color: white;
+    border-color: var(--accent-green);
+}
+
+/* Scenarios Container */
+.scenarios-container {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 2rem;
+}
+
+.scenarios-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.scenarios-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scenarios-list::-webkit-scrollbar-track {
+    background: var(--bg-section);
+    border-radius: 3px;
+}
+
+.scenarios-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+.scenarios-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+.scenario-item {
+    padding: 1rem;
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.scenario-item:hover {
+    border-color: var(--accent-green);
+    transform: translateX(4px);
+}
+
+.scenario-item.selected {
+    background: var(--accent-green-bg, #ecfdf5);
+    border-color: var(--accent-green);
+}
+
+.scenario-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.scenario-item h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.complexity-badge {
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--radius-sm);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.scenario-category {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0 0 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.scenario-result {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: 24px;
+}
+
+.result-status {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.6rem;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.result-status.loading {
+    color: #f59e0b;
+    background: #fef3c7;
+}
+
+.result-status.pass {
+    color: #10b981;
+    background: #d1fae5;
+}
+
+.result-status.fail {
+    color: #ef4444;
+    background: #fee2e2;
+}
+
+.loader-small {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top-color: currentColor;
+    animation: spin 0.8s linear infinite;
+}
+
+/* Scenario Details */
+.scenario-details {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 1rem;
+    border-bottom: 1.5px solid var(--border);
+    padding-bottom: 1rem;
+}
+
+.details-header h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.complexity-badge-large {
+    padding: 0.4rem 1rem;
+    border-radius: var(--radius-pill);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* Detail Sections */
+.detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.detail-section h4 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.85rem;
+}
+
+.detail-section p {
+    margin: 0;
+    color: var(--text-primary);
+    line-height: 1.6;
+    background: var(--bg-section);
+    padding: 0.8rem;
+    border-radius: var(--radius-md);
+}
+
+.instruction-text {
+    font-style: italic;
+    border-left: 3px solid var(--accent-green) !important;
+    padding-left: 1rem !important;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.details-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.8rem;
+    background: var(--bg-section);
+    border-radius: var(--radius-md);
+}
+
+.detail-label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.learning-outcomes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.learning-outcomes li {
+    padding: 0.6rem 0.8rem;
+    background: var(--accent-green-bg, #ecfdf5);
+    border-left: 3px solid var(--accent-green);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+/* Result Display */
+.result-display {
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border);
+}
+
+.result-display.pass {
+    background: #d1fae5;
+    border-color: var(--accent-green);
+}
+
+.result-display.fail {
+    background: #fee2e2;
+    border-color: #ef4444;
+}
+
+.result-display h4 {
+    margin: 0 0 0.5rem;
+    font-weight: 700;
+}
+
+.result-display p {
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+}
+
+.result-screenshot {
+    width: 100%;
+    max-height: 300px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+    margin-top: 0.8rem;
+}
+
+/* Run Button */
+.run-scenario-btn {
+    padding: 0.8rem 1.5rem;
+    background: var(--accent-green);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: auto;
+}
+
+.run-scenario-btn:hover:not(:disabled) {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.run-scenario-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Scrollbar styling for details */
+.scenario-details::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scenario-details::-webkit-scrollbar-track {
+    background: var(--bg-section);
+    border-radius: 3px;
+}
+
+.scenario-details::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+.scenario-details::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .scenarios-container {
+        grid-template-columns: 300px 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .scenarios-container {
+        grid-template-columns: 1fr;
+    }
+
+    .scenarios-list {
+        max-height: 40vh;
+    }
+
+    .scenario-details {
+        max-height: none;
+    }
+
+    .panel-header h2 {
+        font-size: 1.4rem;
+    }
+
+    .filter-buttons {
+        gap: 0.5rem;
+    }
+
+    .filter-btn {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.9rem;
+    }
+}

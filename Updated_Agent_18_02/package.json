@@ -1,0 +1,19 @@
+{
+  "name": "infs_sprnbrd",
+  "version": "1.0.0",
+  "description": "Automated testing suite for verifying login functionality using Playwright and Pytest. This dashboard tests a local HTML login page, checking both successful logins and handling failure scenarios (like negative testing) by capturing screenshots automatically on test failure.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently -k -n BACKEND,FRONTEND -c bgBlue.bold,bgGreen.bold \"cd backend && python main.py\" \"cd frontend && npm run dev\"",
+    "dev:backend": "cd backend && python main.py",
+    "dev:frontend": "cd frontend && npm run dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.58.0",
+    "concurrently": "^9.1.2"
+  }
+}
