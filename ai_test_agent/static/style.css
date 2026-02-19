@@ -1,0 +1,245 @@
+body {
+    background-color: #000000;
+    color: #e0e0e0;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+/* Canvas Background */
+#mouse-trail {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.content-wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header Section */
+header {
+    text-align: center;
+    margin-top: 10vh;
+    margin-bottom: 50px;
+}
+
+.infosys-title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin: 0;
+    color: #ffffff;
+    letter-spacing: -1px;
+}
+
+.sub-title {
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: #00ffc8;
+    /* Greenish Blue */
+    margin: 10px 0 30px 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.intro-text p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #b0b0b0;
+    max-width: 700px;
+    margin: 10px auto;
+}
+
+/* Scroll Indication */
+.scroll-indicator {
+    text-align: center;
+    margin-top: auto;
+    margin-bottom: 50px;
+    color: #00ffc8;
+    animation: bounce 2s infinite;
+}
+
+.scroll-indicator span {
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.arrow {
+    font-size: 1.5rem;
+}
+
+@keyframes bounce {
+
+    0%,
+    20%,
+    50%,
+    80%,
+    100% {
+        transform: translateY(0);
+    }
+
+    40% {
+        transform: translateY(-10px);
+    }
+
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+/* Interaction Zone (Command Box etc.) */
+.interaction-zone {
+    margin-top: 20vh;
+    /* Push it down so user has to scroll */
+    padding-bottom: 100px;
+}
+
+.command-box {
+    background: rgba(20, 20, 20, 0.8);
+    border: 1px solid #333;
+    padding: 30px;
+    border-radius: 8px;
+    /* Professional rounded corners, subtle */
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    margin-bottom: 40px;
+}
+
+label {
+    display: block;
+    font-size: 0.9rem;
+    color: #00ffc8;
+    margin-bottom: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+textarea {
+    width: 100%;
+    background-color: #0a0a0a;
+    border: 1px solid #333;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    /* No more mono font default */
+    padding: 15px;
+    border-radius: 4px;
+    height: 100px;
+    resize: vertical;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+}
+
+textarea:focus {
+    border-color: #00ffc8;
+}
+
+button {
+    background: linear-gradient(135deg, #00ffc8 0%, #00b894 100%);
+    color: #000;
+    border: none;
+    padding: 12px 25px;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 255, 200, 0.3);
+}
+
+button:disabled {
+    background: #444;
+    color: #888;
+    transform: none;
+    box-shadow: none;
+    cursor: default;
+}
+
+/* Results Area */
+.results-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.log-panel,
+.report-panel {
+    background: rgba(20, 20, 20, 0.8);
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+h3 {
+    background: #111;
+    color: #00ffc8;
+    margin: 0;
+    padding: 15px;
+    font-size: 1rem;
+    border-bottom: 1px solid #333;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.panel-content {
+    padding: 20px;
+    height: 300px;
+    overflow-y: auto;
+    font-family: 'Consolas', 'Monaco', monospace;
+    /* Keep logs monospaced for readability */
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+.log-entry {
+    margin: 5px 0;
+    border-bottom: 1px solid #222;
+    padding-bottom: 2px;
+}
+
+.log-entry.error {
+    color: #ff4757;
+}
+
+.placeholder {
+    color: #555;
+    font-style: italic;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #111;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
