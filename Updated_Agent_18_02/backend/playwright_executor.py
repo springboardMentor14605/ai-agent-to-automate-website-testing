@@ -25,7 +25,7 @@ class PlaywrightExecutor:
         self.slow_mo = slow_mo
         self.default_timeout = timeout
 
-    def execute_test(self, test_steps: list, login_url: str = "") -> dict:
+    def execute_test(self, test_steps: list, login_url: str = "", is_login_test: bool = False) -> dict:
         """
         Execute test steps by writing them to a temp file and running
         a subprocess with the sync Playwright API.
@@ -33,6 +33,7 @@ class PlaywrightExecutor:
         Args:
             test_steps: List of step dicts with action/target/value.
             login_url:  The original login URL to compare against after login.
+            is_login_test: If True, run post-login verification checks.
         """
         results = {
             "status": "PASS",
@@ -51,7 +52,7 @@ class PlaywrightExecutor:
         screenshot_path = os.path.join(screenshots_dir, f"result_{timestamp}.png")
 
         # Build and write the runner script to a temp file
-        runner_code = self._build_runner_script(test_steps, screenshot_path, login_url)
+        runner_code = self._build_runner_script(test_steps, screenshot_path, login_url, is_login_test)
 
         tmp_script = None
         try:
@@ -116,7 +117,7 @@ class PlaywrightExecutor:
 
         return results
 
-    def _build_runner_script(self, test_steps: list, screenshot_path: str, login_url: str) -> str:
+    def _build_runner_script(self, test_steps: list, screenshot_path: str, login_url: str, is_login_test: bool = False) -> str:
         """Build a standalone Python script that runs the Playwright test."""
         steps_json = json.dumps(test_steps)
         script = f'''# -*- coding: utf-8 -*-
@@ -256,7 +257,7 @@ def run_test():
                 except Exception:
                     pass
 
-                raise Exception(f"Could not find element: {selector}")
+                raise Exception(f"Could not find element: {{selector}}")
 
             for idx, step in enumerate(test_steps):
                 action = step.get("action")
@@ -341,46 +342,55 @@ def run_test():
                     raise
 
             # ============================================
-            # POST-LOGIN VERIFICATION
+            # POST-LOGIN VERIFICATION (only for login tests)
             # ============================================
-            try:
-                page.wait_for_load_state("networkidle", timeout=5000)
-            except Exception:
-                pass
+            is_login = {str(is_login_test)}
 
-            page.wait_for_timeout(500)
-            url_after_login = page.url
+            if is_login:
+                try:
+                    page.wait_for_load_state("networkidle", timeout=5000)
+                except Exception:
+                    pass
 
-            # 1. Check for visible error messages on the page
-            error_text = find_error_on_page(page)
-            if error_text:
-                results["status"] = "FAIL"
-                results["error"] = f"Login failed: {{error_text}}"
-                results["details"].append(f"[FAIL] Login verification: error message detected on page")
-                results["details"].append(f"[INFO] Error message: {{error_text}}")
+                page.wait_for_timeout(500)
+                url_after_login = page.url
 
-            # 2. Check if URL changed (successful login usually redirects)
-            elif url_before_login and url_after_login:
-                # Normalize URLs for comparison (strip trailing slashes)
-                norm_before = url_before_login.rstrip("/")
-                norm_after = url_after_login.rstrip("/")
-                if norm_before == norm_after:
-                    # URL didn't change — likely login failed silently
-                    # Double-check page title or content for clues
-                    page_title = page.title().lower()
-                    page_text = page.inner_text("body")[:500].lower()
+                # 1. Check for visible error messages on the page
+                error_text = find_error_on_page(page)
+                if error_text:
+                    results["status"] = "FAIL"
+                    results["error"] = f"Login failed: {{error_text}}"
+                    results["details"].append(f"[FAIL] Login verification: error message detected on page")
+                    results["details"].append(f"[INFO] Error message: {{error_text}}")
 
-                    login_keywords = ["login", "sign in", "log in", "signin", "authenticate"]
-                    still_on_login = any(kw in page_title or kw in page_text[:200] for kw in login_keywords)
+                # 2. Check if URL changed (successful login usually redirects)
+                elif url_before_login and url_after_login:
+                    # Normalize URLs for comparison (strip trailing slashes)
+                    norm_before = url_before_login.rstrip("/")
+                    norm_after = url_after_login.rstrip("/")
+                    if norm_before == norm_after:
+                        # URL didn't change — likely login failed silently
+                        page_title = page.title().lower()
+                        page_text = page.inner_text("body")[:500].lower()
 
-                    if still_on_login:
-                        results["status"] = "FAIL"
-                        results["error"] = "Login failed: page did not navigate away from the login page. Credentials may be incorrect."
-                        results["details"].append("[FAIL] Login verification: still on login page after submission")
+                        login_keywords = ["login", "sign in", "log in", "signin", "authenticate"]
+                        still_on_login = any(kw in page_title or kw in page_text[:200] for kw in login_keywords)
+
+                        if still_on_login:
+                            results["status"] = "FAIL"
+                            results["error"] = "Login failed: page did not navigate away from the login page. Credentials may be incorrect."
+                            results["details"].append("[FAIL] Login verification: still on login page after submission")
+                        else:
+                            results["details"].append("[PASS] Login verification: page content changed")
                     else:
-                        results["details"].append("[PASS] Login verification: page content changed")
-                else:
-                    results["details"].append(f"[PASS] Login verification: redirected to {{url_after_login}}")
+                        results["details"].append(f"[PASS] Login verification: redirected to {{url_after_login}}")
+            else:
+                # For non-login tests, just wait for page to settle
+                try:
+                    page.wait_for_load_state("domcontentloaded", timeout=5000)
+                except Exception:
+                    pass
+                page.wait_for_timeout(500)
 
             # Take screenshot (always, regardless of pass/fail)
             page.screenshot(path=screenshot_path)

@@ -206,7 +206,7 @@ def run_instruction(req: InstructionRequest):
             "value": s.get("value", ""),
         })
 
-    exec_results = executor.execute_test(exec_steps, login_url=req.url)
+    exec_results = executor.execute_test(exec_steps, login_url=req.url, is_login_test=False)
 
     # Convert screenshot path to URL
     screenshot_url = None

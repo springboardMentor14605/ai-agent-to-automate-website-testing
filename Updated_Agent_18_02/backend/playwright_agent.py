@@ -367,7 +367,7 @@ def execute_node(state: AgentState) -> AgentState:
                 login_url = cmd.get("target", "")
                 break
 
-        results = executor.execute_test(state["parsed_commands"], login_url=login_url)
+        results = executor.execute_test(state["parsed_commands"], login_url=login_url, is_login_test=True)
         print(f"   Execution Status: {results.get('status', 'UNKNOWN')}")
         if results.get("error"):
             print(f"   Error: {results['error']}")

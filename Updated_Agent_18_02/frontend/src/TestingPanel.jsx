@@ -5,9 +5,10 @@ const TEST_SCENARIOS = [
     {
         id: 'scenario-1',
         category: 'E-Commerce',
-        title: "Complete Purchase Flow",
+        title: "Sauce Demo - Login & Add to Cart",
         complexity: "Advanced",
-        instruction: "Login with standard_user, add 3 different items to cart, apply any discount if available, and complete the purchase",
+        type: "login",
+        instruction: "",
         website: "https://www.saucedemo.com",
         username: "standard_user",
         password: "secret_sauce"
@@ -15,9 +16,10 @@ const TEST_SCENARIOS = [
     {
         id: 'scenario-2',
         category: 'Form Handling',
-        title: "Multi-Step Form Submission",
+        title: "Multi-Field Form Submission",
         complexity: "Hard",
-        instruction: "Fill all fields on form page with First Name 'Alice', Last Name 'Smith', Email 'alice@test.com', Phone '4155552671', Date '12292021', Textarea 'This is a test'",
+        type: "instruction",
+        instruction: "Fill the first name field with 'Alice', the last name field with 'Smith', and the job title field with 'Engineer'",
         website: "https://formy.herokuapp.com/form",
         username: "",
         password: ""
@@ -25,9 +27,10 @@ const TEST_SCENARIOS = [
     {
         id: 'scenario-3',
         category: 'E-Commerce',
-        title: "NopCommerce - Complete Shopping",
-        complexity: "Hard",
-        instruction: "Navigate to electronics, find a desktop computer product, click it, verify specifications, and add to cart",
+        title: "NopCommerce - Product Search",
+        complexity: "Medium",
+        type: "instruction",
+        instruction: "Type 'phone' into the search box and then click the search button to find products",
         website: "https://demo.nopcommerce.com/",
         username: "",
         password: ""
@@ -35,9 +38,10 @@ const TEST_SCENARIOS = [
     {
         id: 'scenario-4',
         category: 'UI Elements',
-        title: "Handle Multiple Dropdowns",
+        title: "Handle Dropdown Selection",
         complexity: "Medium",
-        instruction: "Navigate to dropdown page and select 'Option 1' from the main dropdown",
+        type: "instruction",
+        instruction: "Select 'Option 2' from the dropdown element with id 'dropdown'",
         website: "https://the-internet.herokuapp.com/dropdown",
         username: "",
         password: ""
@@ -46,19 +50,21 @@ const TEST_SCENARIOS = [
         id: 'scenario-5',
         category: 'Form Handling',
         title: "Checkbox Toggle Test",
-        complexity: "Medium",
-        instruction: "Visit checkbox page and check the checkbox labeled 'Check this checkbox'",
-        website: "https://formy.herokuapp.com/checkbox",
+        complexity: "Easy",
+        type: "instruction",
+        instruction: "Click the first checkbox on the checkboxes page to toggle it",
+        website: "https://the-internet.herokuapp.com/checkboxes",
         username: "",
         password: ""
     },
     {
         id: 'scenario-6',
         category: 'UI Elements',
-        title: "Radio Button Selection",
+        title: "Button Click Test",
         complexity: "Easy",
-        instruction: "Navigate to radio button page and select 'Option 2'",
-        website: "https://formy.herokuapp.com/radio-button",
+        type: "instruction",
+        instruction: "Click on the 'Elemental Selenium' link at the bottom of the page",
+        website: "https://the-internet.herokuapp.com/",
         username: "",
         password: ""
     },
@@ -67,7 +73,8 @@ const TEST_SCENARIOS = [
         category: 'Navigation',
         title: "Multi-Window Handling",
         complexity: "Hard",
-        instruction: "Click the 'Click Here' link on windows page to open new window and verify it opens",
+        type: "instruction",
+        instruction: "Click the 'Click Here' link on the page to trigger a new window",
         website: "https://the-internet.herokuapp.com/windows",
         username: "",
         password: ""
@@ -75,9 +82,10 @@ const TEST_SCENARIOS = [
     {
         id: 'scenario-8',
         category: 'E-Commerce',
-        title: "Search & Add to Cart",
+        title: "NopCommerce - Category Browse",
         complexity: "Medium",
-        instruction: "Search for 'shirt' on nopcommerce, filter results, and add the first shirt to cart with quantity 2",
+        type: "instruction",
+        instruction: "Type 'shirt' into the search input field and press the search button",
         website: "https://demo.nopcommerce.com/",
         username: "",
         password: ""
@@ -85,22 +93,24 @@ const TEST_SCENARIOS = [
     {
         id: 'scenario-9',
         category: 'Form Handling',
-        title: "Date and Time Input",
+        title: "Autocomplete Form Test",
         complexity: "Medium",
-        instruction: "On formy form page, set date to 12/25/2023 and fill all required fields",
-        website: "https://formy.herokuapp.com/form",
+        type: "instruction",
+        instruction: "Type '123 Main Street' into the address field on the autocomplete form page",
+        website: "https://formy.herokuapp.com/autocomplete",
         username: "",
         password: ""
     },
     {
         id: 'scenario-10',
         category: 'E-Commerce',
-        title: "Product Filter & Compare",
-        complexity: "Advanced",
-        instruction: "On nopcommerce, browse apparel category, filter by color, select multiple items, and view them in cart",
-        website: "https://demo.nopcommerce.com/",
-        username: "",
-        password: ""
+        title: "Sauce Demo - Negative Login",
+        complexity: "Easy",
+        type: "login",
+        instruction: "",
+        website: "https://www.saucedemo.com",
+        username: "locked_out_user",
+        password: "secret_sauce"
     }
 ];
 
@@ -117,32 +127,56 @@ function TestingPanel() {
     const [results, setResults] = useState({});
 
     const categories = ['All', ...new Set(TEST_SCENARIOS.map(s => s.category))];
-    
-    const filteredScenarios = filterCategory === 'All' 
-        ? TEST_SCENARIOS 
+
+    const filteredScenarios = filterCategory === 'All'
+        ? TEST_SCENARIOS
         : TEST_SCENARIOS.filter(s => s.category === filterCategory);
 
     const runScenario = async (scenario) => {
         setResults(prev => ({ ...prev, [scenario.id]: { loading: true } }));
 
         try {
-            const response = await fetch('http://localhost:8000/api/run-test', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    url: scenario.website,
-                    username: scenario.username,
-                    password: scenario.password,
-                    phone: ''
-                }),
-            });
+            let response;
+
+            if (scenario.type === 'login') {
+                // Login-based scenario — use login endpoint
+                response = await fetch('http://localhost:8000/api/run-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: scenario.website,
+                        username: scenario.username,
+                        password: scenario.password,
+                        phone: ''
+                    }),
+                });
+            } else {
+                // Instruction-based scenario — use instruction endpoint
+                response = await fetch('http://localhost:8000/api/run-instruction', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        instruction: scenario.instruction,
+                        url: scenario.website,
+                    }),
+                });
+            }
 
             const data = await response.json();
+
+            // For negative login tests (locked_out_user), FAIL is expected behavior
+            let status;
+            if (scenario.id === 'scenario-10') {
+                status = data.status === 'FAIL' ? 'pass' : 'fail';
+            } else {
+                status = data.status === 'PASS' ? 'pass' : 'fail';
+            }
+
             setResults(prev => ({
                 ...prev,
                 [scenario.id]: {
                     loading: false,
-                    status: data.status === 'PASS' ? 'pass' : 'fail',
+                    status,
                     data
                 }
             }));
@@ -200,7 +234,7 @@ function TestingPanel() {
                                 </span>
                             </div>
                             <p className="scenario-category">{scenario.category}</p>
-                            
+
                             <div className="scenario-result">
                                 {results[scenario.id]?.loading && (
                                     <span className="result-status loading">
@@ -238,7 +272,11 @@ function TestingPanel() {
 
                         <div className="detail-section">
                             <h4>Test Instruction</h4>
-                            <p className="instruction-text">{selectedScenario.instruction}</p>
+                            <p className="instruction-text">
+                                {selectedScenario.type === 'login'
+                                    ? `Login to ${selectedScenario.website} with user "${selectedScenario.username}"`
+                                    : selectedScenario.instruction}
+                            </p>
                         </div>
 
                         <div className="detail-section">
@@ -248,10 +286,12 @@ function TestingPanel() {
                                     <span className="detail-label">Website:</span>
                                     <span>{selectedScenario.website}</span>
                                 </div>
-                                <div>
-                                    <span className="detail-label">Username:</span>
-                                    <span>{selectedScenario.username}</span>
-                                </div>
+                                {selectedScenario.type === 'login' && (
+                                    <div>
+                                        <span className="detail-label">Username:</span>
+                                        <span>{selectedScenario.username}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
