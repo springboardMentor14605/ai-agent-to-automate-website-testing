@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infosys Springboard - AI Test Agent</title>
+    <!-- Using Inter and Roboto for a professional look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Load custom styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <canvas id="mouse-trail"></canvas>
+
+    <div class="content-wrapper">
+        <header>
+            <h1 class="infosys-title">Infosys Springboard</h1>
+            <h2 class="sub-title">AI Automation Agent</h2>
+            <div class="intro-text">
+                <p>Welcome to the next generation of web testing capability. This AI Agent interprets natural language
+                    instructions to autonomously navigate, interact, and validate web applications.</p>
+                <p>Simply provide your test scenario in plain English, and the agent will generate and execute
+                    Playwright scripts in real-time, providing instant feedback and detailed reports.</p>
+            </div>
+        </header>
+
+        <div class="scroll-indicator">
+            <span>SCROLL DOWN TO INTERACT</span>
+            <div class="arrow">↓</div>
+        </div>
+
+        <section class="interaction-zone">
+            <div class="command-box">
+                <label for="instruction">Enter Test Instruction</label>
+                <textarea id="instruction" placeholder="e.g. Go to https://google.com and search for AI..."></textarea>
+                <button id="run-btn" onclick="runTest()">Initialize Sequence</button>
+            </div>
+
+            <div class="results-container">
+                <div class="log-panel">
+                    <h3>Execution Logs</h3>
+                    <div id="logs" class="panel-content">
+                        <span class="placeholder">Waiting for execution...</span>
+                    </div>
+                </div>
+
+                <div class="report-panel">
+                    <h3>Test Report</h3>
+                    <div id="report" class="panel-content">
+                        <span class="placeholder">No report available.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // --- 3D Slug / Sharp Dots Effect ---
+        const canvas = document.getElementById('mouse-trail');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let mouse = { x: -100, y: -100 };
+        const particles = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.size = Math.random() * 2 + 1;
+                // Greenish Blue Color
+                this.color = `rgba(0, 255, 200, ${Math.random() * 0.5 + 0.2})`;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Bounce off edges
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+
+                // Mouse attraction (The "Slug Effect")
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                // If close to mouse, accelerate towards it (sharp dots clustering)
+                if (dist < 150) {
+                    const force = (150 - dist) / 150;
+                    this.vx += (dx / dist) * force * 0.5;
+                    this.vy += (dy / dist) * force * 0.5;
+                }
+
+                // Damping
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+        }
+
+        // Initialize particles
+        for (let i = 0; i < 100; i++) {
+            particles.push(new Particle());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Connect particles near mouse to form the "3D structure"
+            particles.forEach((p, index) => {
+                p.update();
+                p.draw();
+
+                // Draw lines between particles close to each other AND close to mouse
+                // to create that "sharp dots" web effect
+                const distToMouse = Math.sqrt((p.x - mouse.x) ** 2 + (p.y - mouse.y) ** 2);
+
+                if (distToMouse < 200) {
+                    for (let j = index + 1; j < particles.length; j++) {
+                        const p2 = particles[j];
+                        const dist = Math.sqrt((p.x - p2.x) ** 2 + (p.y - p2.y) ** 2);
+                        if (dist < 60) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = `rgba(0, 255, 200, ${1 - dist / 60})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            });
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // --- Original Logic ---
+        async function runTest() {
+            const instruction = document.getElementById('instruction').value;
+            const logsDiv = document.getElementById('logs');
+            const reportDiv = document.getElementById('report');
+            const btn = document.getElementById('run-btn');
+
+            if (!instruction) {
+                alert("Please enter an instruction.");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+            logsDiv.innerHTML = "<p class='log-entry'>Initializing sequence...</p>";
+            reportDiv.innerHTML = "<span class='placeholder'>Running test...</span>";
+
+            try {
+                const response = await fetch('/run-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ instruction: instruction })
+                });
+
+                const data = await response.json();
+
+                logsDiv.innerHTML = "";
+                data.logs.forEach(log => {
+                    logsDiv.innerHTML += `<p class="log-entry">${log}</p>`;
+                });
+
+                reportDiv.innerText = data.report;
+
+            } catch (error) {
+                logsDiv.innerHTML += `<p class="log-entry error">Critical Error: ${error.message}</p>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Initialize Sequence";
+            }
+        }
+    </script>
+</body>
+
+</html>
