@@ -1,0 +1,6 @@
+flask
+flask-cors
+playwright
+langchain
+langchain-google-genai
+langgraph

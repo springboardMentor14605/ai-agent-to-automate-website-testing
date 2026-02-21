@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoTest AI — Natural Language Website Testing</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #080c10;
+      --surface: #0d1117;
+      --border:  #1e2a38;
+      --accent:  #00e5ff;
+      --accent2: #7c3aed;
+      --green:   #22c55e;
+      --red:     #ef4444;
+      --text:    #c9d1d9;
+      --muted:   #4a5568;
+      --mono:    'Space Mono', monospace;
+      --sans:    'Syne', sans-serif;
+    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow-x: hidden; }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: linear-gradient(rgba(0,229,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,.04) 1px, transparent 1px);
+      background-size: 40px 40px; pointer-events: none; z-index: 0;
+    }
+    body::after {
+      content: ''; position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(0,229,255,.07) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .container { position: relative; z-index: 1; max-width: 880px; margin: 0 auto; padding: 60px 24px 80px; }
+
+    /* Header */
+    header { text-align: center; margin-bottom: 52px; animation: fadeDown .7s ease both; }
+    .badge { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: .15em; color: var(--accent); border: 1px solid rgba(0,229,255,.3); padding: 4px 14px; border-radius: 2px; margin-bottom: 20px; text-transform: uppercase; }
+    h1 { font-family: var(--sans); font-weight: 800; font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.1; letter-spacing: -.02em; background: linear-gradient(135deg, #fff 30%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 14px; }
+    .subtitle { font-family: var(--mono); font-size: 13px; color: var(--muted); letter-spacing: .04em; }
+
+    /* Card */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 28px 32px; margin-bottom: 20px; animation: fadeUp .6s ease both; }
+    .card-label { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+
+    /* Fields */
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; }
+    input[type="text"], input[type="password"], textarea {
+      width: 100%; background: #0a0f16; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--accent); font-family: var(--mono); font-size: 13px; padding: 12px 16px;
+      outline: none; transition: border-color .2s, box-shadow .2s; resize: vertical;
+    }
+    input[type="text"], input[type="password"] { color: var(--text); }
+    input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,229,255,.1); }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+    textarea { min-height: 160px; line-height: 1.7; color: var(--text); }
+
+    /* Example hints */
+    .example-box {
+      background: rgba(0,229,255,.04); border: 1px solid rgba(0,229,255,.12);
+      border-radius: 6px; padding: 14px 16px; margin-top: 10px;
+    }
+    .example-box .ex-label { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 8px; }
+    .example-box pre { font-family: var(--mono); font-size: 12px; color: var(--muted); line-height: 1.8; white-space: pre-wrap; }
+
+    /* Run button */
+    .btn-run {
+      width: 100%; background: var(--accent); color: #080c10; font-family: var(--mono);
+      font-size: 13px; font-weight: 700; letter-spacing: .1em; border: none; border-radius: 6px;
+      padding: 16px; cursor: pointer; text-transform: uppercase; transition: opacity .2s, transform .1s;
+      margin-top: 4px;
+    }
+    .btn-run:hover { opacity: .85; }
+    .btn-run:active { transform: scale(.98); }
+    .btn-run:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* Status */
+    #statusBar { display: none; font-family: var(--mono); font-size: 12px; color: var(--accent); margin-top: 16px; padding: 12px 16px; background: rgba(0,229,255,.05); border: 1px solid rgba(0,229,255,.15); border-radius: 4px; }
+    .blink { animation: blink 1s step-end infinite; }
+
+    /* Error */
+    #errorMsg { display: none; font-family: var(--mono); font-size: 13px; color: var(--red); background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); border-radius: 6px; padding: 16px 20px; margin-top: 16px; animation: fadeUp .3s ease; }
+
+    /* Summary */
+    #summary { display: none; gap: 16px; margin-bottom: 20px; animation: fadeUp .5s ease both; }
+    .stat-box { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; text-align: center; }
+    .stat-box .num { font-family: var(--mono); font-size: 2.2rem; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+    .stat-box .lbl { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+    .stat-box.pass .num { color: var(--green); }
+    .stat-box.fail .num { color: var(--red); }
+    .stat-box.total .num { color: var(--accent); }
+
+    /* Verdict */
+    #verdict { display: none; font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .1em; text-align: center; padding: 14px; border-radius: 6px; margin-bottom: 20px; text-transform: uppercase; animation: fadeUp .4s ease both; }
+    #verdict.PASS { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); color: var(--green); }
+    #verdict.FAIL { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: var(--red); }
+
+    /* Steps */
+    #stepsContainer { display: none; }
+    .steps-header { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+    .step-item { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; overflow: hidden; opacity: 0; transform: translateY(10px); animation: fadeUp .4s ease forwards; }
+    .step-item.PASS { border-left: 3px solid var(--green); }
+    .step-item.FAIL { border-left: 3px solid var(--red); }
+    .step-item.PENDING { border-left: 3px solid var(--muted); }
+    .step-header { display: flex; align-items: center; gap: 14px; padding: 14px 18px; cursor: pointer; user-select: none; }
+    .step-num { font-family: var(--mono); font-size: 10px; color: var(--muted); min-width: 24px; }
+    .step-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .PASS .step-status-dot { background: var(--green); }
+    .FAIL .step-status-dot { background: var(--red); }
+    .PENDING .step-status-dot { background: var(--muted); }
+    .step-action { font-family: var(--mono); font-size: 11px; color: var(--accent2); background: rgba(124,58,237,.12); border: 1px solid rgba(124,58,237,.25); padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: .06em; flex-shrink: 0; }
+    .step-target { font-family: var(--mono); font-size: 12px; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .step-chevron { font-size: 10px; color: var(--muted); transition: transform .2s; }
+    .step-item.open .step-chevron { transform: rotate(90deg); }
+    .step-body { display: none; padding: 0 18px 16px 56px; border-top: 1px solid var(--border); }
+    .step-item.open .step-body { display: block; }
+    .step-expected { font-size: 13px; color: var(--muted); margin-top: 12px; margin-bottom: 10px; line-height: 1.5; }
+    .assertions-label { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .assertion-line { font-family: var(--mono); font-size: 12px; color: #8b949e; background: #0a0f16; border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; margin-bottom: 4px; word-break: break-all; }
+    .step-value { font-family: var(--mono); font-size: 11px; color: var(--accent); background: rgba(0,229,255,.06); border: 1px solid rgba(0,229,255,.15); border-radius: 3px; padding: 4px 10px; display: inline-block; margin-bottom: 8px; }
+    .step-error { font-family: var(--mono); font-size: 12px; color: var(--red); background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.2); border-radius: 4px; padding: 10px 12px; margin-top: 10px; word-break: break-all; white-space: pre-wrap; }
+
+    /* Animations */
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp   { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes blink    { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    footer { text-align: center; margin-top: 60px; font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .06em; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="badge">⬡ AutoTest AI Agent</div>
+    <h1>Test Any Website<br/>In Plain English</h1>
+    <p class="subtitle">// Describe what to test → AI parses, runs &amp; reports results</p>
+  </header>
+
+  <!-- Input Card -->
+  <div class="card" style="animation-delay:.1s">
+    <div class="card-label">// Configuration</div>
+    <div class="field">
+      <label>Website URL</label>
+      <input type="text" id="urlInput" placeholder="https://example.com" autocomplete="off" />
+    </div>
+
+    <div class="field">
+      <label>Test Instructions <span style="color:var(--muted);font-size:10px">(natural language — one step per line)</span></label>
+      <textarea id="instructions" placeholder="Enter username as student&#10;Enter password as Password123&#10;Click the Submit button&#10;Verify that login was successful and the page shows Congratulations"></textarea>
+      </div>
+    </div>
+
+    <button class="btn-run" id="runBtn" onclick="runTests()">▶ Run Tests</button>
+
+    <div id="statusBar"><span id="statusText">Initialising</span><span class="blink"> █</span></div>
+    <div id="errorMsg"></div>
+  </div>
+
+  <!-- Summary -->
+  <div id="summary" style="display:flex">
+    <div class="stat-box total"><div class="num" id="statTotal">0</div><div class="lbl">Total Steps</div></div>
+    <div class="stat-box pass"> <div class="num" id="statPass">0</div> <div class="lbl">Passed</div></div>
+    <div class="stat-box fail"> <div class="num" id="statFail">0</div> <div class="lbl">Failed</div></div>
+  </div>
+
+  <!-- Verdict -->
+  <div id="verdict"></div>
+
+  <!-- Steps -->
+  <div id="stepsContainer">
+    <div class="steps-header">// Test Steps</div>
+    <div id="stepsList"></div>
+  </div>
+
+  <footer>AutoTest AI — LangGraph · Playwright · Google Gemini</footer>
+</div>
+
+<script>
+  const statusMessages = [
+    "Parsing your natural language instructions...",
+    "Converting steps to Playwright actions...",
+    "Generating assertions with Gemini...",
+    "Launching headless browser...",
+    "Executing test steps...",
+    "Collecting results...",
+    "Compiling report...",
+  ];
+  let statusInterval = null, statusIdx = 0;
+
+  function startStatusCycle() {
+    statusIdx = 0;
+    document.getElementById("statusText").textContent = statusMessages[0];
+    statusInterval = setInterval(() => {
+      statusIdx = Math.min(statusIdx + 1, statusMessages.length - 1);
+      document.getElementById("statusText").textContent = statusMessages[statusIdx];
+    }, 3000);
+  }
+
+  function stopStatusCycle() { clearInterval(statusInterval); }
+
+  function reset() {
+    document.getElementById("errorMsg").style.display = "none";
+    document.getElementById("statusBar").style.display = "none";
+    document.getElementById("summary").style.display = "none";
+    document.getElementById("verdict").style.display = "none";
+    document.getElementById("stepsContainer").style.display = "none";
+    document.getElementById("stepsList").innerHTML = "";
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("errorMsg");
+    el.style.display = "block";
+    el.textContent = "⚠ " + msg;
+  }
+
+  async function runTests() {
+    const url          = document.getElementById("urlInput").value.trim();
+    
+    const instructions = document.getElementById("instructions").value.trim();
+
+    if (!url)          { showError("Please enter a URL."); return; }
+    if (!instructions)  { showError("Please enter your test instructions."); return; }
+
+    reset();
+    const btn = document.getElementById("runBtn");
+    btn.disabled = true;
+    document.getElementById("statusBar").style.display = "block";
+    startStatusCycle();
+
+    try {
+      const res = await fetch("/api/run-tests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, instructions })
+      });
+
+      const data = await res.json();
+      stopStatusCycle();
+      document.getElementById("statusBar").style.display = "none";
+
+      if (!res.ok || data.error) { showError(data.error || "Unknown error"); return; }
+      renderReport(data);
+
+    } catch (err) {
+      stopStatusCycle();
+      document.getElementById("statusBar").style.display = "none";
+      showError("Could not reach backend. Make sure Flask is running.\n" + err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function renderReport(data) {
+    document.getElementById("statTotal").textContent = data.total_steps;
+    document.getElementById("statPass").textContent  = data.summary.passed;
+    document.getElementById("statFail").textContent  = data.summary.failed;
+    document.getElementById("summary").style.display = "flex";
+
+    const v = document.getElementById("verdict");
+    v.style.display = "block";
+    v.className = data.status;
+    v.textContent = data.status === "PASS"
+      ? `✓ All tests passed`
+      : `✗ ${data.summary.failed} step(s) failed`;
+
+    const list = document.getElementById("stepsList");
+    list.innerHTML = "";
+
+    (data.steps || []).forEach((step, i) => {
+      const item = document.createElement("div");
+      item.className = `step-item ${step.status}`;
+      item.style.animationDelay = `${i * 60}ms`;
+
+      const assertions = (step.assertions || [])
+        .map(a => `<div class="assertion-line">${esc(a)}</div>`).join("")
+        || `<div class="assertion-line" style="color:var(--muted)">— no assertion —</div>`;
+
+      const valueHtml = step.value
+        ? `<div class="step-value">value: "${esc(step.value)}"</div>` : "";
+
+      const errorHtml = step.error
+        ? `<div class="step-error">⚠ ${esc(step.error)}</div>` : "";
+
+      item.innerHTML = `
+        <div class="step-header" onclick="this.parentElement.classList.toggle('open')">
+          <span class="step-num">#${String(i+1).padStart(2,'0')}</span>
+          <span class="step-status-dot"></span>
+          <span class="step-action">${esc(step.action||'')}</span>
+          <span class="step-target">${esc(step.target||'')}</span>
+          <span class="step-chevron">▶</span>
+        </div>
+        <div class="step-body">
+          <div class="step-expected">${esc(step.expected||'')}</div>
+          ${valueHtml}
+          <div class="assertions-label">// Assertion</div>
+          ${assertions}
+          ${errorHtml}
+        </div>`;
+
+      list.appendChild(item);
+    });
+
+    document.getElementById("stepsContainer").style.display = "block";
+  }
+
+  function esc(str) {
+    return String(str||'').replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+</script>
+</body>
+</html>
