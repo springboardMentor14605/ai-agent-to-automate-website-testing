@@ -1,10 +1,10 @@
-# 🤖 AutoTest AI — Natural Language Website Testing Agent
+# AutoTest AI — Natural Language Website Testing Agent
 
-> **Final Project** — AI-powered end-to-end web testing using LangGraph, Google Gemini, and Playwright.
+> AI-powered end-to-end web testing using LangGraph, Google Gemini, and Playwright.
 
 ---
 
-## 📌 Overview
+## Overview
 
 **AutoTest AI** is an agentic QA automation tool that lets you test any website using **plain English instructions**. No Selenium knowledge, no XPath hunting — just describe what to test, and the AI handles the rest.
 
@@ -34,7 +34,7 @@ User Instructions (NL)
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 autotest_ai/
@@ -67,7 +67,7 @@ autotest_ai/
 ## 🛠️ Tech Stack
 
 - **Backend:** Python, Flask, Flask-CORS
-- **AI / LLM:** Google Gemini (`gemini-2.0-flash`) via LangChain
+- **AI / LLM:** Google Gemini (`gemini-3-flash-preview`) via LangChain
 - **Agent Framework:** LangGraph (`StateGraph`)
 - **Browser Automation:** Playwright (Python, headless Chromium)
 - **Frontend:** Vanilla HTML/CSS/JS (dark UI, no framework)
@@ -169,7 +169,7 @@ Conditional edges route to `handle_generation_error` if any node sets `state["er
 
 ### `llm_assertion_generator.py` — Gemini Wrapper
 
-- Initializes `ChatGoogleGenerativeAI` with `gemini-2.0-flash`
+- Initializes `ChatGoogleGenerativeAI` with `gemini-3-flash-preview`
 - `extract_text()` safely handles both string and list response formats
 - Used directly inside `app.py` Node 1 for the single LLM call
 
@@ -246,15 +246,6 @@ Conditional edges route to `handle_generation_error` if any node sets `state["er
 
 ---
 
-## 🤝 Contributing
-
-This is part of a collaborative project. If you're a collaborator:
-
-1. Create a new branch: `git checkout -b your-name/feature`
-2. Make your changes inside `final_project/`
-3. Push and open a PR targeting `main`
-
----
 
 ## 📄 License
 
