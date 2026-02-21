@@ -1,0 +1,20 @@
+# AI Web Testing Agent — Dependencies
+# Install: pip install -r requirements.txt
+# Then:    playwright install chromium
+
+# Core
+langchain-google-genai>=1.0.0
+langchain-core>=0.2.0
+langgraph>=0.1.0
+
+# Browser automation
+playwright>=1.44.0
+
+# Web framework (Flask UI)
+flask>=3.0.0
+
+# Alternative UI
+streamlit>=1.35.0
+
+# Utilities
+python-dotenv>=1.0.0
