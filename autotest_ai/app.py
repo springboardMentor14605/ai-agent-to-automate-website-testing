@@ -11,8 +11,7 @@ from llm_assertion_generator import LLMAssertionGenerator, extract_text
 from playwright_executor import PlaywrightExecutor
 
 # ── API KEY ── Set your Google Gemini API key here ──────────────
-# GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"
-GEMINI_API_KEY = "AIzaSyC_gmN_yK9hS8dVI0N0Oz7xICNE3o_jGMs"
+GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"
 # ─────────────────────────────────────────────────────────────────
 
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
