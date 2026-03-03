@@ -2,14 +2,14 @@
 
 A robust automated testing platform powered by AI and real browser automation.
 
-## ✨ Features
-- 🤖 **AI-Powered**: Uses Google Gemini to understand natural language test descriptions
-- 🌐 **Real Browser Testing**: Playwright automation for authentic test execution
-- 📊 **Detailed Reports**: Step-by-step logs with screenshots
-- ⚡ **Async Architecture**: High-performance async/await implementation
-- 🎨 **Minimal UI**: Clean white and black design for clarity
+## Features
+- <img src="../assets/icons/ai.svg" alt="AI" width="18" height="18"> **AI-Powered**: Uses Google Gemini to understand natural language test descriptions
+- <img src="../assets/icons/browser.svg" alt="Browser" width="18" height="18"> **Real Browser Testing**: Playwright automation for authentic test execution
+- <img src="../assets/icons/reports.svg" alt="Reports" width="18" height="18"> **Detailed Reports**: Step-by-step logs with screenshots
+- <img src="../assets/icons/async.svg" alt="Async" width="18" height="18"> **Async Architecture**: High-performance async/await implementation
+- <img src="../assets/icons/design.svg" alt="Design" width="18" height="18"> **Minimal UI**: Clean white and black design for clarity
 
-## 🚀 Quick Start
+## <img src="../assets/icons/rocket.svg" alt="Quick Start" width="18" height="18"> Quick Start
 
 ### 1. Backend Setup
 ```bash
@@ -34,14 +34,14 @@ npm run dev
 ### 3. Access Application
 Open http://localhost:5173 in your browser.
 
-## 📖 Usage
+## <img src="../assets/icons/book.svg" alt="Usage" width="18" height="18"> Usage
 
 1. **Enter Target URL**: The login page you want to test
 2. **Provide Credentials**: Username/email and password
 3. **Run Test**: Click "Run Test" and wait for results
 4. **View Results**: See PASS/FAIL status with screenshot and detailed logs
 
-## 🛠️ Tech Stack
+## <img src="../assets/icons/tools.svg" alt="Tech Stack" width="18" height="18"> Tech Stack
 
 **Backend:**
 - Python (FastAPI)
@@ -54,19 +54,19 @@ Open http://localhost:5173 in your browser.
 - Vite
 - Modern CSS
 
-## 📋 Requirements
+## <img src="../assets/icons/book.svg" alt="Requirements" width="18" height="18"> Requirements
 - Python 3.8+
 - Node.js 16+
 - Google Gemini API Key
 
-## 📚 Documentation
+## <img src="../assets/icons/book.svg" alt="Documentation" width="18" height="18"> Documentation
 See [COMPLETE_GUIDE.md](./Documentation/COMPLETE_GUIDE.md) for detailed documentation.
 
-## 🎯 Example Tests
+## <img src="../assets/icons/target.svg" alt="Example Tests" width="18" height="18"> Example Tests
 - **SauceDemo**: https://www.saucedemo.com/ (standard_user / secret_sauce)
 - **The Internet**: https://the-internet.herokuapp.com/login (tomsmith / SuperSecretPassword!)
 
-## 🔧 Configuration
+## <img src="../assets/icons/tools.svg" alt="Configuration" width="18" height="18"> Configuration
 
 ### Modify Test Selectors
 Edit `backend/main.py` to customize the test template for different websites.
@@ -80,7 +80,7 @@ def __init__(self, headless=True, slow_mo=0, timeout=30000)
 ### Change UI Colors
 Update CSS variables in `frontend/src/index.css`.
 
-## 🐛 Troubleshooting
+## <img src="../assets/icons/bug.svg" alt="Troubleshooting" width="18" height="18"> Troubleshooting
 
 **Tests failing?**
 - Verify selectors match your target site
@@ -92,7 +92,7 @@ Update CSS variables in `frontend/src/index.css`.
 - Check CORS settings
 - Verify `screenshots/` directory exists
 
-## 📄 Project Structure
+## <img src="../assets/icons/book.svg" alt="Project Structure" width="18" height="18"> Project Structure
 ```
 ├── backend/              # Python/FastAPI backend
 │   ├── main.py           # API server

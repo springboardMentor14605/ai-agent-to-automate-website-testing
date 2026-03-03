@@ -1,15 +1,30 @@
+"""
+Playwright Agent — LangGraph-based test automation pipeline.
+
+Pipeline:  scout → parse → enrich → generate → execute
+
+The 'scout' node navigates to the target URL first and extracts
+the actual page structure (form fields, buttons, selectors).
+This lets the 'parse' node provide the LLM with real selectors
+instead of guessing.
+
+All graph nodes are synchronous. The 'execute' node calls
+PlaywrightExecutor.execute_test() which spawns a subprocess
+(avoiding any asyncio / Windows event-loop issues).
+"""
 import os
 import json
-from typing import List, Dict, Any, TypedDict
+from typing import List, Dict, Any, Optional, TypedDict
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.graph import StateGraph, END
 
-# Import new modules
+# Import project modules
 from llm_assertion_generator import LLMAssertionGenerator
 from assertion_generator import AssertionGenerator
 from playwright_executor import PlaywrightExecutor
+from page_scout import scout_page
 
 # ==================================================
 # ENV SETUP
@@ -17,7 +32,6 @@ from playwright_executor import PlaywrightExecutor
 
 load_dotenv()
 
-# Ensure API Key is set for Gemini
 api_key = os.getenv("ABHAY_API_KEY")
 if api_key:
     os.environ["GOOGLE_API_KEY"] = api_key
@@ -29,16 +43,15 @@ if not os.getenv("GOOGLE_API_KEY"):
 # MODEL SETUP
 # ==================================================
 
-# Using Gemini 2.5 Flash as identified in available models
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash", 
+    model="gemini-2.5-flash",
     temperature=0
 )
 
-# Initialize Component Classes
+# Initialize components
 assertion_gen_rule = AssertionGenerator()
 assertion_gen_llm = LLMAssertionGenerator(api_key=os.environ["GOOGLE_API_KEY"])
-executor = PlaywrightExecutor(headless=True) # Default to headless as per Doc 2
+executor = PlaywrightExecutor(headless=True, slow_mo=500)
 
 # ==================================================
 # SYSTEM PROMPT
@@ -61,9 +74,15 @@ Allowed actions:
 
 Parameters:
 - action: One of the allowed actions.
-- target: The selector or URL.
+- target: The selector or URL.  Use EXACT CSS selectors from the page structure provided.
 - value: The input text or wait time.
-- expected: (Optional) A description of the expected result after this step (e.g., "The login button should be visible", "URL should be /dashboard").
+- expected: (Optional) Expected result description.
+
+IMPORTANT RULES:
+- Use the EXACT selectors from the page structure if provided.
+- Do NOT invent selectors. Only use selectors that appear in the page elements list.
+- Match fields by their "role" (username, password, email, phone, submit).
+- For the submit/login button, use the selector from the element with role "submit".
 
 Output format:
 [
@@ -87,8 +106,8 @@ def clean_json_output(text: str) -> str:
         text = text.replace("```json", "").replace("```", "")
     return text.strip()
 
+
 def parse_with_llm(instruction: str) -> List[Dict[str, Any]]:
-    # New prompt structure implies we need to be careful with the output
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=instruction),
@@ -97,17 +116,16 @@ def parse_with_llm(instruction: str) -> List[Dict[str, Any]]:
     response = llm.invoke(messages)
     content = response.content
 
-    # Handle Gemini sometimes returning a list of parts or dict
     if isinstance(content, list):
-         text_parts = []
-         for block in content:
-             if isinstance(block, str):
-                 text_parts.append(block)
-             elif isinstance(block, dict) and "text" in block:
-                 text_parts.append(block["text"])
-             else:
-                 text_parts.append(str(block))
-         content = "".join(text_parts)
+        text_parts = []
+        for block in content:
+            if isinstance(block, str):
+                text_parts.append(block)
+            elif isinstance(block, dict) and "text" in block:
+                text_parts.append(block["text"])
+            else:
+                text_parts.append(str(block))
+        content = "".join(text_parts)
     elif isinstance(content, dict) and "text" in content:
         content = content["text"]
 
@@ -117,29 +135,78 @@ def parse_with_llm(instruction: str) -> List[Dict[str, Any]]:
         parsed = json.loads(cleaned)
     except json.JSONDecodeError as e:
         print(f"Failed to parse JSON: {cleaned}")
-        # Robustness: Try to find JSON array in text
         start = cleaned.find('[')
         end = cleaned.rfind(']')
         if start != -1 and end != -1:
             try:
                 parsed = json.loads(cleaned[start:end+1])
-            except:
+            except Exception:
                 raise ValueError(f"Invalid JSON from LLM: {e}")
         else:
-             raise ValueError(f"Invalid JSON from LLM: {e}")
+            raise ValueError(f"Invalid JSON from LLM: {e}")
 
     if not isinstance(parsed, list):
         raise ValueError("Parsed output is not a list")
 
     return parsed
 
+
+def build_smart_instruction(user_input: str, scout_data: dict) -> str:
+    """
+    Combine the user's natural-language request with the actual
+    page structure discovered by the scout, so the LLM uses real selectors.
+    """
+    if not scout_data or not scout_data.get("success"):
+        # Fallback: just pass the original instruction
+        return user_input
+
+    elements = scout_data.get("elements", [])
+    if not elements:
+        return user_input
+
+    # Build a structured description of the page elements
+    element_descriptions = []
+    for el in elements:
+        role = el.get("role", "unknown")
+        selector = el.get("selector", "")
+        attrs = el.get("attributes", {})
+        text = el.get("text", "")
+        in_iframe = el.get("in_iframe", False)
+
+        desc_parts = [f"  - Role: {role}, Selector: {selector}"]
+        if text:
+            desc_parts.append(f"    Text: {text}")
+        if attrs.get("placeholder"):
+            desc_parts.append(f"    Placeholder: {attrs['placeholder']}")
+        if attrs.get("name"):
+            desc_parts.append(f"    Name: {attrs['name']}")
+        if in_iframe:
+            desc_parts.append(f"    (Inside iframe: {el.get('frame_url', '')})")
+
+        element_descriptions.append("\n".join(desc_parts))
+
+    elements_block = "\n".join(element_descriptions)
+
+    enhanced = f"""{user_input}
+
+--- PAGE STRUCTURE (discovered by scouting the actual page) ---
+Page title: {scout_data.get('page_title', '')}
+Final URL: {scout_data.get('final_url', '')}
+
+Available form elements on the page:
+{elements_block}
+
+IMPORTANT: Use the EXACT selectors listed above. Do NOT use generic selectors like #user-name unless they appear in the list above.
+"""
+    return enhanced
+
 # ==================================================
-# PLAYWRIGHT PYTHON GENERATOR
+# PLAYWRIGHT CODE GENERATOR  (for display / export)
 # ==================================================
 
 def generate_playwright_python(commands: List[Dict[str, Any]]) -> str:
     lines = [
-        "from playwright.sync_api import sync_playwright, expect",
+        "from playwright.sync_api import sync_playwright",
         "",
         "def run_test():",
         "    with sync_playwright() as p:",
@@ -152,7 +219,6 @@ def generate_playwright_python(commands: List[Dict[str, Any]]) -> str:
         action = cmd.get("action")
         target = cmd.get("target")
         value = cmd.get("value")
-        assertions = cmd.get("assertions", [])
 
         if action == "open":
             lines.append(f"        page.goto('{target}')")
@@ -162,17 +228,13 @@ def generate_playwright_python(commands: List[Dict[str, Any]]) -> str:
             lines.append(f"        page.click('{target}')")
         elif action == "wait":
             lines.append(f"        page.wait_for_timeout({int(value)})")
-        
-        # Add generated assertions
-        for assertion in assertions:
-            lines.append(f"        {assertion}")
 
     lines.append("")
     lines.append("        browser.close()")
     lines.append("")
     lines.append("if __name__ == '__main__':")
     lines.append("    run_test()")
-    
+
     return "\n".join(lines)
 
 # ==================================================
@@ -181,86 +243,141 @@ def generate_playwright_python(commands: List[Dict[str, Any]]) -> str:
 
 class AgentState(TypedDict):
     user_input: str
+    scout_data: Dict[str, Any]
     parsed_commands: List[Dict[str, Any]]
     generated_code: str
     execution_results: Dict[str, Any]
 
 # ==================================================
-# LANGGRAPH NODES
+# LANGGRAPH NODES  (all synchronous)
 # ==================================================
 
-def parse_node(state: AgentState) -> AgentState:
-    print(f"-> Parsing user input: {state['user_input'][:50]}...")
-    try:
-        commands = parse_with_llm(state["user_input"])
-    except Exception as e:
-        print(f"Parsing error: {e}")
-        commands = []
-        
+def scout_node(state: AgentState) -> AgentState:
+    """Navigate to the target URL and extract form elements."""
+    print("-> Scouting target page for form elements...")
+    scout_data = {}
+
+    # Extract the URL from user_input
+    url = ""
+    for word in state["user_input"].split():
+        if word.startswith("http://") or word.startswith("https://"):
+            # Clean trailing punctuation
+            url = word.rstrip(".,;!?")
+            break
+
+    if url:
+        print(f"   Scouting URL: {url}")
+        scout_data = scout_page(url)
+        if scout_data.get("success"):
+            n_elements = len(scout_data.get("elements", []))
+            print(f"   Found {n_elements} form element(s) on the page")
+            for el in scout_data.get("elements", []):
+                print(f"     - {el.get('role', '?'):10s} -> {el.get('selector', '?')}")
+        else:
+            print(f"   Scout warning: {scout_data.get('error', 'No elements found')}")
+    else:
+        print("   Could not extract URL from user input")
+
     return {
         "user_input": state["user_input"],
+        "scout_data": scout_data,
+        "parsed_commands": [],
+        "generated_code": "",
+        "execution_results": {}
+    }
+
+
+def parse_node(state: AgentState) -> AgentState:
+    """Parse user input + scout data into structured commands via LLM."""
+    print(f"-> Parsing user input with page context...")
+    try:
+        # Enhance the instruction with actual page element info
+        enhanced_input = build_smart_instruction(
+            state["user_input"],
+            state.get("scout_data", {})
+        )
+        commands = parse_with_llm(enhanced_input)
+    except Exception as e:
+        print(f"   Parsing error: {e}")
+        commands = []
+
+    return {
+        "user_input": state["user_input"],
+        "scout_data": state.get("scout_data", {}),
         "parsed_commands": commands,
         "generated_code": "",
         "execution_results": {}
     }
 
+
 def enrich_node(state: AgentState) -> AgentState:
     print("-> Enriching commands with assertions...")
     commands = state["parsed_commands"]
-    enriched_commands = []
-    
+    enriched = []
+
     for cmd in commands:
         new_cmd = cmd.copy()
         assertions = []
-        
-        # 1. Try Rule-Based Generation
+
         try:
             assertions = assertion_gen_rule.generate_assertions(new_cmd)
         except Exception as e:
-            print(f"Rule Based Assertion Error: {e}")
+            print(f"   Rule-Based Assertion Error: {e}")
 
-        # 2. If no rule-based assertions and there is an expectation, try LLM
         if not assertions and new_cmd.get("expected"):
             print(f"   Using LLM for expectation: {new_cmd.get('expected')}")
             try:
                 assertions = assertion_gen_llm.generate_assertions(new_cmd)
             except Exception as e:
-                print(f"LLM Assertion Error: {e}")
-            
+                print(f"   LLM Assertion Error: {e}")
+
         new_cmd["assertions"] = assertions
-        enriched_commands.append(new_cmd)
-        
+        enriched.append(new_cmd)
+
     return {
         "user_input": state["user_input"],
-        "parsed_commands": enriched_commands,
+        "scout_data": state.get("scout_data", {}),
+        "parsed_commands": enriched,
         "generated_code": "",
         "execution_results": {}
     }
+
 
 def generate_node(state: AgentState) -> AgentState:
     print("-> Generating Playwright code...")
     code = generate_playwright_python(state["parsed_commands"])
     return {
         "user_input": state["user_input"],
+        "scout_data": state.get("scout_data", {}),
         "parsed_commands": state["parsed_commands"],
         "generated_code": code,
         "execution_results": {}
     }
 
+
 def execute_node(state: AgentState) -> AgentState:
-    print("-> Executing test in headless browser...")
+    """Run Playwright via subprocess (no asyncio conflict)."""
+    print("-> Executing test in browser (subprocess)...")
     results = {}
     try:
-        results = executor.execute_test(state["parsed_commands"])
+        # Extract the login URL from the parsed commands for verification
+        login_url = ""
+        for cmd in state["parsed_commands"]:
+            if cmd.get("action") == "open":
+                login_url = cmd.get("target", "")
+                break
+
+        results = executor.execute_test(state["parsed_commands"], login_url=login_url, is_login_test=True)
         print(f"   Execution Status: {results.get('status', 'UNKNOWN')}")
-        if results.get('error'):
+        if results.get("error"):
             print(f"   Error: {results['error']}")
     except Exception as e:
         print(f"   Execution Layer Error: {e}")
-        results = {"status": "FAIL", "error": str(e)}
+        results = {"status": "FAIL", "error": str(e), "details": [f"[FAIL] {e}"]}
 
     return {
         "user_input": state["user_input"],
+        "scout_data": state.get("scout_data", {}),
         "parsed_commands": state["parsed_commands"],
         "generated_code": state["generated_code"],
         "execution_results": results
@@ -272,12 +389,14 @@ def execute_node(state: AgentState) -> AgentState:
 
 graph = StateGraph(AgentState)
 
+graph.add_node("scout", scout_node)
 graph.add_node("parse", parse_node)
 graph.add_node("enrich", enrich_node)
 graph.add_node("generate", generate_node)
 graph.add_node("execute", execute_node)
 
-graph.set_entry_point("parse")
+graph.set_entry_point("scout")
+graph.add_edge("scout", "parse")
 graph.add_edge("parse", "enrich")
 graph.add_edge("enrich", "generate")
 graph.add_edge("generate", "execute")
@@ -286,40 +405,37 @@ graph.add_edge("execute", END)
 app = graph.compile()
 
 # ==================================================
-# MAIN
+# MAIN  (standalone usage)
 # ==================================================
 
 if __name__ == "__main__":
-    # Test Case matching Doc 1 & 3 examples
     test_case = """
-    Open the login page at https://practice.automationtesting.in/my-account/ expecting the url to be correct.
-    Enter username as kabir@google.com in #username.
-    Enter password as pass123 in #password.
-    Click the login button input[name="login"] expecting the text 'Hello' to be visible.
+    Open the login page at https://www.saucedemo.com/.
+    Enter username as standard_user.
+    Enter password as secret_sauce.
+    Click the login button.
     """
 
     print("Starting Agent...")
     try:
-        result = app.invoke(
-            {
-                "user_input": test_case,
-                "parsed_commands": [],
-                "generated_code": "",
-                "execution_results": {}
-            }
-        )
-        
+        result = app.invoke({
+            "user_input": test_case,
+            "scout_data": {},
+            "parsed_commands": [],
+            "generated_code": "",
+            "execution_results": {}
+        })
+
         print("\n============= GENERATED PLAYWRIGHT CODE ==============\n")
         print(result["generated_code"])
-        
+
         print("\n============= EXECUTION RESULTS ==============\n")
         print(json.dumps(result["execution_results"], indent=2))
-        
-        # Update generated test script
+
         output_file = "generated_test_script.py"
         with open(output_file, "w") as f:
             f.write(result["generated_code"])
         print(f"\n[INFO] Generated code saved to {output_file}")
-        
+
     except Exception as e:
         print(f"\n[ERROR] execution failed: {e}")

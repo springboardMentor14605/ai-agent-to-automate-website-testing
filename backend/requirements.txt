@@ -5,3 +5,8 @@ langgraph
 playwright
 pytest
 google-generativeai
+fastapi
+uvicorn
+python-multipart
+pydantic
+requests

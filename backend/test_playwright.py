@@ -5,8 +5,9 @@ from playwright.sync_api import sync_playwright, expect
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
 SCREENSHOT_DIR = os.path.join(BASE_DIR, "screenshots")
-LOGIN_PAGE = f"file:///{os.path.join(BASE_DIR, 'login.html').replace(os.sep, '/')}"
+LOGIN_PAGE = f"file:///{os.path.join(PROJECT_ROOT, 'login.html').replace(os.sep, '/')}"
 
 
 @pytest.fixture(scope="session")
@@ -60,10 +61,10 @@ def test_positive_login(page):
     expect(page.locator("#successMessage")).to_have_text("Login Successful!")
 
 def test_negative_login(page):
-    """This test should FAIL and generate a screenshot."""
+    """Test login with empty credentials — should display an error."""
     page.goto(LOGIN_PAGE)
     page.fill("#username", "") 
     page.fill("#password", "")
     page.click("#loginBtn")
-    
-    expect(page.locator("#errorMessage")).to_have_text("WRONG EXPECTED TEXT")
+
+    expect(page.locator("#errorMessage")).to_have_text("Invalid credentials")

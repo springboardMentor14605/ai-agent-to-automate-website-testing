@@ -24,3 +24,8 @@ node_modules/
 
 # Generated Files (optional, usually you don't commit these)
 generated_test_script.py
+
+# Unnecessary files
+*Presentation*.md
+*PRESENTATION*.md
+langgraph_agent1.ipynb
