@@ -18,7 +18,7 @@ pip install -r requirements.txt
 playwright install chromium
 
 # Add your Google API key to .env
-echo "ABHAY_API_KEY=your_key_here" > .env
+echo "YOUR_API_KEY=your_key_here" > .env
 
 # Start server
 python main.py
